@@ -5,7 +5,7 @@ import random
 import math
 
 # Initialize q-table values to 0
-degIntervals = 9
+degIntervals = 15
 posIntervals = 8
 state_size = degIntervals * posIntervals
 action_size = 2
@@ -14,7 +14,7 @@ Q = np.zeros((state_size, action_size))
 
 # Set the percent you want to explore
 def takeAction(state):
-    epsilon = 0.2
+    epsilon = 0.4
     if random.uniform(0, 1) < epsilon:
         """
         Explore: select a random action
@@ -29,47 +29,52 @@ def takeAction(state):
 
 # Update q values
 def oneDtoXY(val):
-    x  =val%degIntervals
-    y = (val-x)/posIntervals
-    return(x,y)
+    x = val % degIntervals
+    y = (val - x) // posIntervals
+    return (x, y)
+
+
 def updateQValues(state, action, reward):
-    #TODO
+    # TODO
     lr = 0.5
     gamma = 0.9
-    x,y = oneDtoXY(state)
-    up = valToState(x, y)
-    down = valToState(x,max(y, y-1))
-    left = 0
-    right = 0
-    Qnext = [Q[state,:], Q[up, :], Q[down,:],Q[right,:], Q[left,:] ]
+    x, y = oneDtoXY(state)
+    up = valToState(x, min(posIntervals, y + 1))
+    down = valToState(x, max(0, y - 1))
+    left = valToState(max(0, x - 1), y)
+    right = valToState(min(degIntervals, x + 1), y)
+    Qnext = [Q[state, :], Q[up, :], Q[down, :], Q[right, :], Q[left, :]]
     Q[state, action] = Q[state, action] + lr * (reward + gamma * np.max(Qnext) - Q[state, action])
 
 
 def radToVal(rad):
-    ranges = [deg for deg in range(-12, 12, degIntervals)]
+    ranges = [deg for deg in range(-24, 24, degIntervals)]
     degrees = math.degrees(rad)
     for i in range(0, len(ranges)):
         if ranges[i] < degrees < ranges[i + 1]:
             return i
+
+
 def posToVal(pos):
     ranges = [pos for pos in range(-5, 5, posIntervals)]
     for i in range(0, len(ranges)):
         if ranges[i] < pos < ranges[i + 1]:
             return i
-def valToState(angval, posval):
-    return angval*degIntervals+posval
 
+
+def valToState(angval, posval):
+    return angval * degIntervals + posval
 
 
 # Slutt medium artikkel
 
 env = gym.make('CartPole-v1')
 
-for i_episode in range(2000):
+for i_episode in range(20):
     observation = env.reset()
     for t in range(100):
         env.render()
-        angleVal =radToVal(observation[2])
+        angleVal = radToVal(observation[2])
         posVal = posToVal(observation[0])
         currentState = valToState(angleVal, posVal)
         action = takeAction(currentState)
