@@ -5,8 +5,8 @@ import random
 import math
 
 # Initialize q-table values to 0
-degIntervals = 15
-posIntervals = 8
+degIntervals = 8 # must be 8
+posIntervals = 8 # must be 8
 state_size = degIntervals * posIntervals
 action_size = 2
 Q = np.zeros((state_size, action_size))
@@ -14,7 +14,7 @@ Q = np.zeros((state_size, action_size))
 
 # Set the percent you want to explore
 def takeAction(state):
-    epsilon = 0.4
+    epsilon = 0.2
     if random.uniform(0, 1) < epsilon:
         """
         Explore: select a random action
@@ -24,20 +24,23 @@ def takeAction(state):
         """
         Exploit: select the action with max value (future reward)
         """
-        return 0 if Q[state, 0] > Q[state, 1] else 1
+        if Q[state, 0] > Q[state, 1]:
+            return 0
+        return 1
+        #return (0 if Q[state, 0] > Q[state, 1] else 1)
 
 
 # Update q values
 def oneDtoXY(val):
-    x = val % degIntervals
-    y = (val - x) // posIntervals
+    x = val % posIntervals
+    y = (val - x) // degIntervals
     return (x, y)
 
 
 def updateQValues(state, action, reward):
     # TODO
-    lr = 0.5
-    gamma = 0.9
+    lr = 0.1
+    gamma = 0.90
     x, y = oneDtoXY(state)
     up = valToState(x, min(posIntervals, y + 1))
     down = valToState(x, max(0, y - 1))
@@ -48,38 +51,43 @@ def updateQValues(state, action, reward):
 
 
 def radToVal(rad):
-    ranges = [deg for deg in range(-24, 24, degIntervals)]
-    degrees = math.degrees(rad)
-    for i in range(0, len(ranges)):
-        if ranges[i] < degrees < ranges[i + 1]:
-            return i
+    interval = 0;
+    while True:
+        if(interval*3-12)<math.degrees(rad)<(interval+1)*3-12:
+            return interval
+        interval+=1
 
 
 def posToVal(pos):
-    ranges = [pos for pos in range(-5, 5, posIntervals)]
-    for i in range(0, len(ranges)):
-        if ranges[i] < pos < ranges[i + 1]:
-            return i
+    interval = 0;
+    while True:
+        if (interval * 0.6 - 2.4) < pos < (interval +1) * 0.6 -2.4:
+            return interval
+        interval += 1
 
 
 def valToState(angval, posval):
-    return angval * degIntervals + posval
+    return angval * posIntervals + posval
 
 
 # Slutt medium artikkel
 
 env = gym.make('CartPole-v1')
-
-for i_episode in range(20):
+results = []
+episodes = 100
+for i_episode in range(episodes):
     observation = env.reset()
     for t in range(100):
-        env.render()
+        if i_episode > episodes-20:
+            env.render()
         angleVal = radToVal(observation[2])
+
         posVal = posToVal(observation[0])
         currentState = valToState(angleVal, posVal)
         action = takeAction(currentState)
         observation, reward, done, info = env.step(action)
         if done:
+            results.append(t)
             print("Episode finished after {} timesteps".format(t + 1))
             break
         angleVal = radToVal(observation[2])
@@ -102,6 +110,7 @@ for i_episode in range(20):
         '''
 
 print(Q)
+print(max(results))
 env.close()
 
 '''
